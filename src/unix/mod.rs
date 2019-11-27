@@ -226,8 +226,12 @@ pub const S_ISUID: ::mode_t = 0x800;
 pub const S_ISGID: ::mode_t = 0x400;
 pub const S_ISVTX: ::mode_t = 0x200;
 
-pub const IF_NAMESIZE: ::size_t = 16;
-pub const IFNAMSIZ: ::size_t = IF_NAMESIZE;
+cfg_if! {
+    if #[cfg(not(target_os = "solaris"))] {
+        pub const IF_NAMESIZE: ::size_t = 16;
+        pub const IFNAMSIZ: ::size_t = IF_NAMESIZE;
+    }
+}
 
 pub const LOG_EMERG: ::c_int = 0;
 pub const LOG_ALERT: ::c_int = 1;

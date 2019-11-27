@@ -1392,6 +1392,9 @@ pub const MSG_DUPCTRL: ::c_int = 0x800;
 pub const MSG_XPG4_2: ::c_int = 0x8000;
 pub const MSG_MAXIOVLEN: ::c_int = 16;
 
+pub const IF_NAMESIZE: ::size_t = 32;
+pub const IFNAMSIZ: ::size_t = 16;
+
 // https://docs.oracle.com/cd/E23824_01/html/821-1475/if-7p.html
 pub const IFF_UP: ::c_int = 0x0000000001; // Address is up
 pub const IFF_BROADCAST: ::c_int = 0x0000000002; // Broadcast address valid
