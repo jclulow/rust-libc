@@ -333,7 +333,7 @@ s! {
         pub mq_maxmsg: ::c_long,
         pub mq_msgsize: ::c_long,
         pub mq_curmsgs: ::c_long,
-        _pad: [::c_int; 4]
+        _pad: [::c_int; 12]
     }
 
     pub struct port_event {
