@@ -455,7 +455,7 @@ s_no_extra_traits! {
         pub data_ptr: *const ::c_char,
         pub data_size: ::size_t,
         pub desc_ptr: *const door_desc_t,
-        pub dec_num: ::c_uint,
+        pub desc_num: ::c_uint,
         pub rbuf: *const ::c_char,
         pub rsize: ::size_t,
     }
