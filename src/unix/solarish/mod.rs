@@ -436,7 +436,7 @@ s_no_extra_traits! {
         pub sigev_notify: ::c_int,
         pub sigev_signo: ::c_int,
         pub sigev_value: ::sigval,
-        pub ss_sp: *mut ::c_void,
+        pub sigev_notify_function: *mut ::c_void,
         pub sigev_notify_attributes: *const ::pthread_attr_t,
         __sigev_pad2: ::c_int,
     }
@@ -756,7 +756,8 @@ cfg_if! {
                 self.sigev_notify == other.sigev_notify
                     && self.sigev_signo == other.sigev_signo
                     && self.sigev_value == other.sigev_value
-                    && self.ss_sp == other.ss_sp
+                    && self.sigev_notify_function
+                        == other.sigev_notify_function
                     && self.sigev_notify_attributes
                         == other.sigev_notify_attributes
             }
@@ -768,7 +769,8 @@ cfg_if! {
                     .field("sigev_notify", &self.sigev_notify)
                     .field("sigev_signo", &self.sigev_signo)
                     .field("sigev_value", &self.sigev_value)
-                    .field("ss_sp", &self.ss_sp)
+                    .field("sigev_notify_function",
+                           &self.sigev_notify_function)
                     .field("sigev_notify_attributes",
                            &self.sigev_notify_attributes)
                     .finish()
@@ -779,7 +781,7 @@ cfg_if! {
                 self.sigev_notify.hash(state);
                 self.sigev_signo.hash(state);
                 self.sigev_value.hash(state);
-                self.ss_sp.hash(state);
+                self.sigev_notify_function.hash(state);
                 self.sigev_notify_attributes.hash(state);
             }
         }
