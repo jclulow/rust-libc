@@ -8,7 +8,11 @@ use std::env;
 fn do_cc() {
     let target = env::var("TARGET").unwrap();
     if cfg!(unix) && !target.contains("wasi") {
-        cc::Build::new().file("src/cmsg.c").compile("cmsg");
+        let mut cc = cc::Build::new();
+        if target.contains("solaris") {
+            cc.define("_XOPEN_SOURCE", "600");
+        }
+        cc.file("src/cmsg.c").compile("cmsg");
     }
 }
 
@@ -648,6 +652,7 @@ fn test_solaris(target: &str) {
         "ctype.h",
         "dirent.h",
         "dlfcn.h",
+        "door.h",
         "errno.h",
         "execinfo.h",
         "fcntl.h",
@@ -657,6 +662,7 @@ fn test_solaris(target: &str) {
         "langinfo.h",
         "limits.h",
         "locale.h",
+        "mqueue.h",
         "net/if.h",
         "net/if_arp.h",
         "net/route.h",
@@ -689,6 +695,7 @@ fn test_solaris(target: &str) {
         "sys/socket.h",
         "sys/stat.h",
         "sys/statvfs.h",
+        "sys/stream.h",
         "sys/time.h",
         "sys/times.h",
         "sys/types.h",
@@ -708,9 +715,21 @@ fn test_solaris(target: &str) {
 
     cfg.skip_const(move |name| match name {
         "DT_FIFO" | "DT_CHR" | "DT_DIR" | "DT_BLK" | "DT_REG" | "DT_LNK"
-        | "DT_SOCK" | "USRQUOTA" | "GRPQUOTA" | "PRIO_MIN" | "PRIO_MAX" => {
+        | "DT_SOCK" | "USRQUOTA" | "GRPQUOTA" | "PRIO_MIN" | "PRIO_MAX"
+        | "DT_UNKNOWN" => {
             true
         }
+
+        // These are defined for Solaris 11 but the crate is tested on illumos
+        // where they are currently not defined
+        "EADI"
+        | "PORT_SOURCE_POSTWAIT"
+        | "PORT_SOURCE_SIGNAL" => true,
+
+        // PTHREAD_STACK_MIN is defined as a call to _sysconf(), not a literal
+        "PTHREAD_STACK_MIN" => true,
+
+        "SIG_DFL" | "SIG_ERR" | "SIG_IGN" => true, // no sighandler_t type
 
         _ => false,
     });
@@ -737,7 +756,91 @@ fn test_solaris(target: &str) {
             // FIXME: mincore is defined with caddr_t on Solaris.
             "mincore" => true,
 
+            // madvise(3C) is defined with caddr_t on illumos:
+            "madvise" => true,
+
+            // {get,set}hostname(3C) are defined with an int length on illumos:
+            "sethostname" | "gethostname" => true,
+
+            // illumos does not use const pointers for these functions yet:
+            "door_call" | "door_create" | "door_return"
+            | "updwtmpx" | "settimeofday" | "mprotect"
+            | "execv" | "execve" | "execvp" => true,
+
+            // illumos does not yet have fexecve():
+            "fexecve" => true,
+
+            // illumos does not yet have POSIX-compliant versions of these:
+            "getpwent_r" | "getgrent_r" => true,
+
             _ => false,
+        }
+    });
+
+    cfg.skip_type(move |ty| {
+        match ty {
+            // illumos uses a bare C function pointer rather than a typedef:
+            "sighandler_t" => true,
+
+            _ => false,
+        }
+    });
+
+    cfg.skip_struct(move |ty| {
+        match ty {
+            // sigval is a union, not a struct
+            "sigval" => true,
+
+            // the definition of the door types is something of a mess...
+            "door_desc_t__d_data__d_desc" => true,
+            "door_desc_t" => true,
+            "door_desc_t__d_data" => true,
+
+            _ => false,
+        }
+    });
+
+    cfg.skip_field(|s, field| {
+        match (s, field) {
+            // d_name is declared char[1] illumos libc, as was the style for
+            // flexible arrays prior to C99
+            ("dirent", "d_name") => true,
+
+            // sa_sigaction is part of a union
+            ("sigaction", "sa_sigaction") => true,
+
+            // we use a timestruc_t for these fields
+            ("stat", "st_atime_nsec") => true,
+            ("stat", "st_ctime_nsec") => true,
+            ("stat", "st_mtime_nsec") => true,
+
+            // sigval is a union, not a struct:
+            ("sigevent", "sigev_value") => true,
+
+            // these members are not yet const on illumos:
+            ("sigevent", "sigev_notify_function") => true,
+            ("sigevent", "sigev_notify_attributes") => true,
+
+            // the definition of the door types is something of a mess...
+            ("door_arg_t", "desc_ptr") => true,
+
+            // these are not const pointers on illumos:
+            ("door_arg_t", "data_ptr") => true,
+            ("door_arg_t", "rbuf") => true,
+
+            _ => false,
+        }
+    });
+
+    cfg.type_name(move |ty, is_struct, is_union| {
+        match ty {
+            // Just pass all these through, no need for a "struct" prefix
+            "FILE" | "DIR" | "Dl_info" => ty.to_string(),
+
+            t if is_union => format!("union {}", t),
+            t if t.ends_with("_t") => t.to_string(),
+            t if is_struct => format!("struct {}", t),
+            t => t.to_string(),
         }
     });
 
