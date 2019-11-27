@@ -2167,6 +2167,7 @@ extern "C" {
         options: ::c_int,
     ) -> ::c_int;
 
+    #[cfg_attr(target_os = "solaris", link_name = "_glob_ext")]
     pub fn glob(
         pattern: *const ::c_char,
         flags: ::c_int,
@@ -2176,6 +2177,7 @@ extern "C" {
         pglob: *mut ::glob_t,
     ) -> ::c_int;
 
+    #[cfg_attr(target_os = "solaris", link_name = "_globfree_ext")]
     pub fn globfree(pglob: *mut ::glob_t);
 
     pub fn posix_madvise(
