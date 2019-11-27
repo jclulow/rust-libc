@@ -373,17 +373,17 @@ s_no_extra_traits! {
     }
 
     pub struct utmpx {
-        pub ut_user: [::c_char; _UTX_USERSIZE],
-        pub ut_id: [::c_char; _UTX_IDSIZE],
-        pub ut_line: [::c_char; _UTX_LINESIZE],
+        pub ut_user: [::c_char; 32],
+        pub ut_id: [::c_char; 4],
+        pub ut_line: [::c_char; 32],
         pub ut_pid: ::pid_t,
         pub ut_type: ::c_short,
         pub ut_exit: exit_status,
         pub ut_tv: ::timeval,
         pub ut_session: ::c_int,
-        pub ut_pad: [::c_int; _UTX_PADSIZE],
+        pub pad: [::c_int; 5],
         pub ut_syslen: ::c_short,
-        pub ut_host: [::c_char; _UTX_HOSTSIZE],
+        pub ut_host: [::c_char; 257],
     }
 
     pub struct sockaddr_un {
@@ -1704,11 +1704,6 @@ pub const PORT_SOURCE_POSTWAIT: ::c_int = 8;
 pub const PORT_SOURCE_SIGNAL: ::c_int = 9;
 
 pub const NONROOT_USR: ::c_short = 2;
-pub const _UTX_USERSIZE: usize = 32;
-pub const _UTX_LINESIZE: usize = 32;
-pub const _UTX_PADSIZE: usize = 5;
-pub const _UTX_IDSIZE: usize = 4;
-pub const _UTX_HOSTSIZE: usize = 257;
 pub const EMPTY: ::c_short = 0;
 pub const RUN_LVL: ::c_short = 1;
 pub const BOOT_TIME: ::c_short = 2;
