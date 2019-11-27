@@ -366,10 +366,17 @@ s! {
 }
 
 s_no_extra_traits! {
-    #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), repr(packed))]
+    pub union epoll_data {
+        pub ptr: *mut ::c_void,
+        pub fd: ::c_int,
+        pub u32: u32,
+        pub u64: u64,
+    }
+
+    #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), repr(C, align(4)))]
     pub struct epoll_event {
         pub events: u32,
-        pub u64: u64,
+        pub data: epoll_data,
     }
 
     pub struct utmpx {
