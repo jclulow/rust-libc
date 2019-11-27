@@ -1910,7 +1910,66 @@ pub const SOCK_CLOEXEC: ::c_int = 0x080000;
 pub const SOCK_NONBLOCK: ::c_int = 0x100000;
 pub const SOCK_NDELAY: ::c_int = 0x200000;
 
+// As per sys/socket.h, header alignment must be 8 bytes on SPARC
+// and 4 bytes everywhere else:
+#[cfg(target_arch = "sparc64")]
+const _CMSG_HDR_ALIGNMENT: usize = 8;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+const _CMSG_HDR_ALIGNMENT: usize = 4;
+
+const _CMSG_DATA_ALIGNMENT: usize = 4;
+
+fn _CMSG_HDR_ALIGN(x: usize) -> usize {
+    (x + _CMSG_HDR_ALIGNMENT - 1) & !(_CMSG_HDR_ALIGNMENT - 1)
+}
+
+fn _CMSG_DATA_ALIGN(x: usize) -> usize {
+    (x + _CMSG_DATA_ALIGNMENT - 1) & !(_CMSG_DATA_ALIGNMENT - 1)
+}
+
 f! {
+    pub fn CMSG_DATA(cmsg: *const ::cmsghdr) -> *mut ::c_uchar {
+        _CMSG_DATA_ALIGN(cmsg as usize +
+            ::mem::size_of::<::cmsghdr>()) as *mut ::c_uchar
+    }
+
+    pub fn CMSG_FIRSTHDR(msg: *const ::msghdr) -> *mut ::cmsghdr {
+        let want = ::mem::size_of::<::cmsghdr>() as u32;
+        if (*msg).msg_controllen < want {
+            0 as *mut ::cmsghdr
+        } else {
+            (*msg).msg_control as *mut ::cmsghdr
+        }
+    }
+
+    pub fn CMSG_NXTHDR(msg: *const ::msghdr, cmsg: *const ::cmsghdr)
+        -> *mut ::cmsghdr
+    {
+        if cmsg.is_null() {
+            ::CMSG_FIRSTHDR(msg)
+        } else {
+            let next = _CMSG_HDR_ALIGN(cmsg as usize +
+                (*cmsg).cmsg_len as usize);
+            let nextend = next + ::mem::size_of::<::cmsghdr>();
+            let max = (*msg).msg_control as usize +
+                (*msg).msg_controllen as usize;
+            if nextend > max {
+                0 as *mut ::cmsghdr
+            } else {
+                next as *mut ::cmsghdr
+            }
+        }
+    }
+
+    pub fn CMSG_SPACE(length: ::c_uint) -> ::c_uint {
+        _CMSG_HDR_ALIGN(::mem::size_of::<::cmsghdr>()
+            + length as usize) as ::c_uint
+    }
+
+    pub fn CMSG_LEN(length: ::c_uint) -> ::c_uint {
+        _CMSG_DATA_ALIGN(::mem::size_of::<::cmsghdr>()) as ::c_uint + length
+    }
+
     pub fn FD_CLR(fd: ::c_int, set: *mut fd_set) -> () {
         let bits = ::mem::size_of_val(&(*set).fds_bits[0]) * 8;
         let fd = fd as usize;
